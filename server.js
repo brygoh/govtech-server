@@ -8,7 +8,7 @@ const urlShortener = require('./routes/url_shortener')
 app.use(cors())
 app.use(express.json({ extended: false }));
 
-app.use('/urlShortener', urlShortener);
+app.use('/url', urlShortener);
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`)

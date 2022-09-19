@@ -11,17 +11,21 @@ const dbQuery = async (query, connection) => {
   })  
 }
 
+const regexCheck = (value) => {
+  const expression = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/
+  if (value.match(expression)) return true
+  return false
+}
+
 router.route('/:code').get(async (req, res) => {
   db.getConnection(async (err, connection) => {
     if (err) return res.status(400).jsonp({ message: err });
     const shortURL = req.protocol + '://' + req.get('host') + req.originalUrl;
     const checkQuery = `SELECT * FROM url WHERE shortURL = "${shortURL}"`
     const checkResp = await dbQuery(checkQuery, connection);
-    console.log(checkResp)
     if (checkResp[0]) {
-      console.log('here')
       connection.release()
-      return res.redirect('https://' + checkResp[0].actualURL);
+      return res.redirect(checkResp[0].actualURL);
     } else {
       connection.release()
       return res.redirect('http://localhost:3000/');
@@ -30,13 +34,16 @@ router.route('/:code').get(async (req, res) => {
 })
 
 router.route('/publish').post(async (req, res) => {
-  if (!req.body || req.body.actualURL === '') {
+  const actualURL = req.body.actualURL
+
+  if (!req.body || actualURL === '') {
     return res.status(204).jsonp({ message: "Empty body, please go ahead to fill up form" })
   }
   db.getConnection(async (err, connection) => {
     if (err) return res.status(400).jsonp({ message: err });
+    if (!regexCheck(actualURL)) return res.status(400).jsonp({ message: "URL is wrongly formatted" });
 
-    const checkQuery = `SELECT * FROM url WHERE actualURL = "${req.body.actualURL}"`;
+    const checkQuery = `SELECT * FROM url WHERE actualURL = "${actualURL}"`;
     const checkResp = await dbQuery(checkQuery, connection);
 
     if (checkResp[0]) {
@@ -44,8 +51,8 @@ router.route('/publish').post(async (req, res) => {
       return res.status(200).jsonp({shortURL: checkResp[0].shortURL});
     } else {
       const shortCode = shortid.generate();
-      const shortURL = 'http://localhost:5000/urlShortener/' + shortCode;
-      const addQuery = `INSERT INTO url (actualURL, shortURL) VALUES ("${req.body.actualURL}", "${shortURL}")`;
+      const shortURL = 'http://localhost:5000/url/' + shortCode;
+      const addQuery = `INSERT INTO url (actualURL, shortURL) VALUES ("${actualURL}", "${shortURL}")`;
       await dbQuery(addQuery, connection);
       connection.release()
       return res.status(200).jsonp({shortURL: shortURL});
