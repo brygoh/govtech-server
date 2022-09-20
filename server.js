@@ -2,7 +2,7 @@ const cors = require('cors')
 const express = require('express')
 
 const app = express()
-const port = 5000
+const port = 8080
 
 // const champion = require('./routes/champion')
 const urlShortener = require('./routes/url_shortener')
