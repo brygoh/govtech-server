@@ -20,15 +20,15 @@ const regexCheck = (value) => {
 router.route('/:code').get(async (req, res) => {
   db.getConnection(async (err, connection) => {
     if (err) return res.status(400).jsonp({ message: err });
-    const shortURL = req.protocol + '://' + req.get('host') + req.originalUrl;
-    const checkQuery = `SELECT * FROM url WHERE shortURL = "${shortURL}"`
+    // const shortURL = req.protocol + '://' + req.get('host') + req.originalUrl;
+    const checkQuery = `SELECT * FROM url WHERE shortId = "${req.params.code}"`
     const checkResp = await dbQuery(checkQuery, connection);
     if (checkResp[0]) {
       connection.release()
       return res.redirect(checkResp[0].actualURL);
     } else {
       connection.release()
-      return res.redirect('http://localhost:3000/');
+      return res.status(400).jsonp({ message: "Invalid record please try again" });
     }
   });
 })
@@ -48,11 +48,17 @@ router.route('/publish').post(async (req, res) => {
 
     if (checkResp[0]) {
       connection.release()
-      return res.status(200).jsonp({shortURL: checkResp[0].shortURL});
+      return res.status(200).jsonp({shortId: checkResp[0].shortId});
     } else {
-      const shortCode = shortid.generate();
-      const shortURL = 'http://localhost:5000/url/' + shortCode;
-      const addQuery = `INSERT INTO url (actualURL, shortURL) VALUES ("${actualURL}", "${shortURL}")`;
+      var shortId = shortid.generate();
+      const existQuery = `SELECT * FROM url WHERE shortId = "${shortId}"`;
+      const existResp = await dbQuery(existQuery, connection);
+
+      if (existResp[0]) {
+        shortId = shortid.generate()
+      } 
+
+      const addQuery = `INSERT INTO url (actualURL, shortId) VALUES ("${actualURL}", "${shortId}")`;
       await dbQuery(addQuery, connection);
       connection.release()
       return res.status(200).jsonp({shortURL: shortURL});
