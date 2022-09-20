@@ -1,8 +1,9 @@
 const cors = require('cors')
 const express = require('express')
+require('dotenv').config();
 
 const app = express()
-const port = 8080
+const port = process.env.PORT || 5000
 
 // const champion = require('./routes/champion')
 const urlShortener = require('./routes/url_shortener')
