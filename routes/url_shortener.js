@@ -33,12 +33,40 @@ router.route('/:code').get(async (req, res) => {
   });
 })
 
+router.route('/delete').post(async (req, res) => {
+  const actualURL = req.body.actualURL
+
+  if (!req.body || actualURL === '') {
+    return res.status(204).jsonp({ message: "Empty body, please go ahead to fill up form" })
+  }
+
+  db.getConnection(async (err, connection) => {
+    if (err) return res.status(400).jsonp({ message: err });
+    if (!regexCheck(actualURL)) return res.status(400).jsonp({ message: "URL is wrongly formatted" });
+
+    const checkQuery = `SELECT * FROM url WHERE actualURL = "${actualURL}"`;
+    const checkResp = await dbQuery(checkQuery, connection);
+
+    if (checkResp[0]) {
+      const deleteQuery = `DELETE FROM url WHERE actualURL = "${actualURL}"`;
+      await dbQuery(deleteQuery, connection);
+
+      connection.release()
+      return res.status(200).jsonp({message: 'Delete has been successful'});
+    } else {
+      connection.release()
+      return res.status(400).jsonp({message: 'URL does not exist within the database'});
+    }
+  })
+})
+
 router.route('/publish').post(async (req, res) => {
   const actualURL = req.body.actualURL
 
   if (!req.body || actualURL === '') {
     return res.status(204).jsonp({ message: "Empty body, please go ahead to fill up form" })
   }
+
   db.getConnection(async (err, connection) => {
     if (err) return res.status(400).jsonp({ message: err });
     if (!regexCheck(actualURL)) return res.status(400).jsonp({ message: "URL is wrongly formatted" });
@@ -53,10 +81,9 @@ router.route('/publish').post(async (req, res) => {
       var shortId = shortid.generate();
       const existQuery = `SELECT * FROM url WHERE shortId = "${shortId}"`;
       const existResp = await dbQuery(existQuery, connection);
-
       if (existResp[0]) {
         shortId = shortid.generate()
-      } 
+      }
 
       const addQuery = `INSERT INTO url (actualURL, shortId) VALUES ("${actualURL}", "${shortId}")`;
       await dbQuery(addQuery, connection);
